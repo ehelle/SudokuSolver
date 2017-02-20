@@ -1,7 +1,7 @@
 {
   "runtimeOptions": {
     "additionalProbingPaths": [
-      "/home/einar/.nuget/packages"
+      "/home/ehelle/.nuget/packages"
     ]
   }
 }

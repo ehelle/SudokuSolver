@@ -15,6 +15,7 @@ static class SudokuSolver {
   static string digits = "123456789";
   static string[] squares = cross(rows, cols);
 
+  // All constraints that have to be solved (rows, cols, squares)
   static IEnumerable<string[]> unitlist = 
       (from c in cols select cross(rows, c.ToString()))
       .Concat(from r in rows select cross(r.ToString(), cols))
@@ -22,13 +23,15 @@ static class SudokuSolver {
               from cs in new [] {"123", "456", "789"}
               select cross(rs, cs));
  
+ // Dict of constraints for a particular square
+ // 1 row, 1 col, 1 square
  static Dictionary<string, IEnumerable<string[]>> units =
   squares.ToDictionary(s => s, s => (
       from u in unitlist
       where u.Contains(s)
-      select u
-    ));
+      select u));
 
+  // Set of squares in units minus self 
   static Dictionary<string, HashSet<string>> peers = 
   squares.ToDictionary(s => s, s => 
       new HashSet<string>(
@@ -42,6 +45,8 @@ static class SudokuSolver {
     return (from a in A from b in B select ""+a+b).ToArray();
   }
 
+  // Convert string representation of sudoku grid
+  // to a Dictionary
   static Dictionary<string, string> parse_grid(string grid) {
     var values = squares.ToDictionary(s => s, _ => digits);
     foreach (var entry in grid_values(grid)) {
@@ -53,6 +58,7 @@ static class SudokuSolver {
     return values;
   }
 
+  // Helper function to parse grid.
   static Dictionary<string, char> grid_values(string grid) {
     var chars = from c in grid 
                 where (digits + "0.").Contains(c)
@@ -62,6 +68,8 @@ static class SudokuSolver {
     return res;
   }
 
+  // Remove all other values except d from values[s]
+  // Return null if contradiction, else values
   static Dictionary<string, string> assign(
     Dictionary<string, string> values, string s, char d) {
       var other_values = values[s].Replace(d.ToString(), "");
@@ -71,16 +79,18 @@ static class SudokuSolver {
         }
       }
       return values;
-    }
+  }
 
+  // Remove d from values[s], propagate when values or places <= 2
+  // Return null if contradiction, else values
   static Dictionary<string, string> eliminate(
   Dictionary<string, string> values, string s, char d) {
     if (!values[s].Contains(d)) {
-      return values;
+      return values; // Allready removed
     }
     values[s] = values[s].Replace(d.ToString(), "");
     if (values[s] == "") {
-      return null;
+      return null; // Last value removed - Dead end.
     } 
     else if (values[s].Length == 1) {
       var d2 = values[s][0];
@@ -104,10 +114,14 @@ static class SudokuSolver {
     return values;
   }
 
+  // The main method to solve a sudoku puzzle
   public static string solve(string grid) {
     return values2string(search(parse_grid(grid)));
   }
 
+  // Recursive depth-first search 
+  // order by shortest list of possible values
+  // try to assign a variable and see if solves. 
   static Dictionary<string, string> search(Dictionary<string, string> values) {
     if (values == null) {
       return null;
@@ -118,13 +132,14 @@ static class SudokuSolver {
     var next = (from s in squares
                 where values[s].Length > 1
                 select new { len = values[s].Length, square = s })
-                .Aggregate((x, y) => x.len > y.len ? x : y);
+                .Aggregate((x, y) => x.len > y.len ? x : y); // min value - rewrite?
     
     return some(from d in values[next.square]
                 select search(assign(new Dictionary<string, string>(values),
                                       next.square, d)));
   }
 
+  // Find element i squence that is not null
   static Dictionary<string, string> some(
     IEnumerable<Dictionary<string, string>> seq) {
     foreach (var elm in seq) {
@@ -135,9 +150,10 @@ static class SudokuSolver {
     return null;
   }
 
+  // Convert solution Dictionary to string representation
   public static string values2string(Dictionary<string, string> values) {
     if (values == null) {
-      return "Not able to solve";
+      return "Not able to solve"; // throw error? Other return?
     } 
     else {
       return String.Join("", (from elm in values
